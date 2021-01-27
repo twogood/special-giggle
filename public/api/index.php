@@ -5,4 +5,11 @@ use App\Api;
 
 require __DIR__ . '/../../vendor/autoload.php';
 
-(new Api())->run();
+$api = new Api();
+try {
+
+    $api->run();
+}
+catch(\Slim\Exception\HttpMethodNotAllowedException $e) {
+    header("HTTP/1.1 405 Method Not Allowed");
+}

@@ -33,12 +33,17 @@ class CounterApi
         });
         $group->post('', function (Request $request, Response $response, $args) {
             $input = json_decode(file_get_contents('php://input'));
-            $name =  $input->name;
+            $name = $input->name;
             $response->getBody()->write(json_encode($this->counterService->createCounter($name)));
             return $response->withHeader('Content-Type', 'application/json');
         });
         $group->get('/{id}', function (Request $request, Response $response, $args) {
-            $response->getBody()->write(json_encode($this->counterService->getCounter((int)$args['id'])));
+            $counterModel = $this->counterService->getCounter((int)$args['id']);
+            if (!$counterModel) {
+                $response->getBody()->write(json_encode(new ErrorModel("Counter not found")));
+                return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+            }
+            $response->getBody()->write(json_encode($counterModel));
             return $response->withHeader('Content-Type', 'application/json');
         });
         $group->post('/{id}', function (Request $request, Response $response, $args) {

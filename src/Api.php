@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace App;
 
+use App\News\NewsApi;
+use App\News\NewsService;
 use PDO;
 use Slim\App;
 use Slim\Factory\AppFactory;
@@ -52,6 +54,7 @@ class Api
     {
         $pdo = (new PdoFactory($this->getDatabaseSettings()))->createPdo();
         $counterApi = new CounterApi(new CounterService($pdo));
+        $newsApi = new NewsApi(new NewsService($pdo));
 
         $app->options('/{routes:.*}', function (Request $request, Response $response) {
             // CORS Pre-Flight OPTIONS Request Handler
@@ -60,6 +63,9 @@ class Api
 
         $app->group('/api/counters', function (Group $group) use ($counterApi) {
             $counterApi->setup($group);
+        });
+        $app->group('/api/news', function (Group $group) use ($newsApi) {
+            $newsApi->setup($group);
         });
 
         return $app;
