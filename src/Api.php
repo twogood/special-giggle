@@ -5,7 +5,6 @@ namespace App;
 
 use App\News\NewsApi;
 use App\News\NewsService;
-use PDO;
 use Slim\App;
 use Slim\Factory\AppFactory;
 use Slim\Interfaces\RouteCollectorProxyInterface as Group;
@@ -42,6 +41,8 @@ class Api
         $settings->sslKey = getenv('MYSQL_SSL_KEY');
         $settings->sslCert = getenv('MYSQL_SSL_CERT');
 
+        $settings->sslCa = $this->storeInTemporaryFile($settings->sslCa);
+
         if (!file_exists($settings->sslCa) || !file_exists($settings->sslKey) || !file_exists($settings->sslCert)) {
             error_log("Missing MySQL SSL files");
             die();
@@ -52,22 +53,37 @@ class Api
 
     private function setup(App $app): App
     {
-        $pdo = (new PdoFactory($this->getDatabaseSettings()))->createPdo();
-        $counterApi = new CounterApi(new CounterService($pdo));
-        $newsApi = new NewsApi(new NewsService($pdo));
+        $settings = $this->getDatabaseSettings();
+        $pdoFactory = new PdoFactory($settings);
+        $pdo = $pdoFactory->createPdo();
 
         $app->options('/{routes:.*}', function (Request $request, Response $response) {
             // CORS Pre-Flight OPTIONS Request Handler
             return $response;
         });
 
+        $counterApi = new CounterApi(new CounterService($pdo));
         $app->group('/api/counters', function (Group $group) use ($counterApi) {
             $counterApi->setup($group);
         });
+
+        $newsApi = new NewsApi(new NewsService($pdo));
         $app->group('/api/news', function (Group $group) use ($newsApi) {
             $newsApi->setup($group);
         });
 
         return $app;
+    }
+
+    private function storeInTemporaryFile(string $pathOrData)
+    {
+        if (file_exists($pathOrData)) {
+            return $pathOrData;
+        } else {
+            $filePath = tempnam(sys_get_temp_dir(), 'mysql');
+            file_put_contents($filePath, $pathOrData);
+            return $filePath;
+        }
+
     }
 }
