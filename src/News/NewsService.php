@@ -10,6 +10,7 @@ use PDOStatement;
 class NewsService
 {
     private PDO $pdo;
+    private string $getNewsQuery = "select *,date(created) as createdDate,date(updated) as updatedDate from news";
 
     /**
      * CounterService constructor.
@@ -31,12 +32,12 @@ class NewsService
 
     public function getNews(): array
     {
-        $query = "select * from news";
+        $query = $this->getNewsQuery;
         $statement = $this->prepare($query);
         $statement->execute();
 
         $items = array();
-        while ($entry = $statement->fetchObject(NewsModel::class)) {
+        while ($entry = $this->getNewsModel($statement)) {
             $items[] = $entry;
         }
         return $items;
@@ -44,10 +45,10 @@ class NewsService
 
     public function getNewsItem(int $id): ?NewsModel
     {
-        $query = "select id,title,content from news where id=:id";
+        $query = $this->getNewsQuery . " where id=:id";
         $statement = $this->prepare($query);
         $statement->execute(compact('id'));
-        return $statement->fetchObject(NewsModel::class) ?: null;
+        return $this->getNewsModel($statement) ?: null;
     }
 
     public function createNewsItem(NewsModel $model): NewsModel
@@ -81,6 +82,23 @@ class NewsService
         $query = "delete from news where id=:id";
         $statement = $this->prepare($query);
         $statement->execute(['id' => $id]);
+    }
+
+    /**
+     * @param PDOStatement $statement
+     * @return NewsModel|null
+     */
+    private function getNewsModel(PDOStatement $statement): ?NewsModel
+    {
+        /**
+         * @var $newsModel NewsModel
+         */
+        $newsModel = $statement->fetchObject(NewsModel::class);
+        if ($newsModel == null) {
+            return null;
+        }
+        $newsModel->preview = substr(strip_tags($newsModel->content), 0, 100);
+        return $newsModel;
     }
 
 }
