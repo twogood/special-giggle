@@ -66,8 +66,9 @@ class NewsApi
     private function getNewsModelFromRequest(): NewsModel
     {
         $input = json_decode(file_get_contents('php://input'));
-        $title = $input->title;
-        $content = $input->content;
-        return new NewsModel($title, $content);
+        $newsModel = new NewsModel();
+        $newsModel->title = $input->title;
+        $newsModel->content = $input->content;
+        return $newsModel;
     }
 }
